@@ -1,0 +1,62 @@
+name: CI
+
+# Quality gate on every PR to main: lint, build the image, and smoke-test imports.
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install ruff
+        run: pip install ruff
+      - name: Run ruff
+        # Non-blocking style report; fails only on real errors (syntax, undefined names).
+        run: ruff check . --output-format=github
+
+  docker-build-smoke:
+    name: Docker build + import smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t am-rag-qa:ci .
+
+      - name: Import smoke test
+        # Proves the app's modules import inside the built image — including the
+        # ragas vertexai shim path in utils/ragas_scorer.py. No API key needed.
+        run: |
+          docker run --rm am-rag-qa:ci python -c "
+          import config
+          import utils.rag
+          import utils.graph
+          import utils.ragas_scorer
+          from utils.ragas_scorer import _patch_missing_vertexai
+          _patch_missing_vertexai()
+          import ragas  # must import after the shim
+          print('smoke test OK')
+          "
+
+  # ── Optional RAGAS quality gate (disabled by default) ───────────────────────
+  # Uncomment and add DEEPSEEK_API_KEY as a repo secret to fail the PR when answer
+  # faithfulness on a committed fixture PDF drops below a threshold.
+  #
+  # ragas-gate:
+  #   name: RAGAS quality gate
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-python@v5
+  #       with: { python-version: "3.11" }
+  #     - run: pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
+  #     - env:
+  #         DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+  #       run: python evaluate.py --doc "fixture" --questions "..."   # parse CSV, assert >= 0.7

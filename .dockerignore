@@ -1,0 +1,37 @@
+# ── Secrets ─────────────────────────────────────────────────────────────────
+.env
+*.env
+.streamlit/secrets.toml
+
+# ── Virtual env / VCS ───────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+.git/
+.gitignore
+
+# ── Python caches ───────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# ── Runtime-generated data (created at startup; must not bloat the image) ───
+uploads/
+vector_store/
+storage/
+results/
+
+# ── Docs / CI not needed at runtime ─────────────────────────────────────────
+*.md
+.github/
+
+# ── OS / editor ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

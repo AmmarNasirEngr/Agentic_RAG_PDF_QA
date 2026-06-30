@@ -1,0 +1,39 @@
+# ── Core ──────────────────────────────────────────────────────────────────────
+streamlit>=1.35.0
+python-dotenv>=1.0.0
+
+# ── LangChain ─────────────────────────────────────────────────────────────────
+langchain>=0.2.0
+langchain-community>=0.2.0
+langchain-huggingface>=0.0.3
+langchain-openai>=0.1.0           # DeepSeek uses OpenAI-compatible API
+langchain-text-splitters>=0.2.0   # RecursiveCharacterTextSplitter (was implicit)
+
+# ── LangGraph ─────────────────────────────────────────────────────────────────
+langgraph>=0.2.0                  # StateGraph — core of the agentic pipeline
+
+# ── LLM — Ollama (primary) ────────────────────────────────────────────────────
+# Ollama must be installed separately: https://ollama.com/download
+# After installing, run: ollama pull llama3.2
+
+# ── LLM — HuggingFace (fallback) ──────────────────────────────────────────────
+transformers>=4.40.0
+torch>=2.0.0           # CPU-only is fine for the fallback model
+
+# ── Embeddings ────────────────────────────────────────────────────────────────
+sentence-transformers>=2.7.0
+
+# ── Vector store ──────────────────────────────────────────────────────────────
+faiss-cpu>=1.7.4
+
+# ── PDF loading ───────────────────────────────────────────────────────────────
+PyMuPDF>=1.24.0
+pymupdf4llm>=1.0.0    # Layout-aware Markdown extraction (tables + headings)
+
+# ── Evaluation ────────────────────────────────────────────────────────────────
+ragas>=0.2.6,<0.3     # RAGAS evaluation; pin <0.3 — 0.4.x breaks on sunset langchain_community
+datasets>=2.20.0      # HuggingFace datasets format required by RAGAS
+tabulate>=0.9.0       # terminal table formatting for evaluate.py
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+requests>=2.31.0

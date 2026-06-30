@@ -1,0 +1,21 @@
+# Local dev / prod-parity. Build and run the same image that ships to AWS App Runner.
+#
+#   docker compose up --build
+#   open http://localhost:8501
+#
+# Reads secrets from your local .env (DEEPSEEK_API_KEY, optional LangSmith keys).
+services:
+  app:
+    build: .
+    image: am-rag-qa:local
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s

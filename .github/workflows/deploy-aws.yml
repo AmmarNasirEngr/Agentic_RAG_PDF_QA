@@ -1,0 +1,64 @@
+name: Deploy to AWS App Runner
+
+# CD: on every push to main, build the image, push to ECR, and roll App Runner.
+# Auth uses GitHub OIDC -> IAM role (no long-lived AWS keys stored in GitHub).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Required for OIDC token exchange with AWS.
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}   # e.g. am-rag-qa
+  APP_RUNNER_SERVICE_ARN: ${{ secrets.APP_RUNNER_SERVICE_ARN }}
+
+jobs:
+  deploy:
+    name: Build, push to ECR, deploy App Runner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          IMAGE="$REGISTRY/$ECR_REPOSITORY"
+          docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
+          docker push "$IMAGE:${{ github.sha }}"
+          docker push "$IMAGE:latest"
+
+      - name: Trigger App Runner deployment
+        run: |
+          aws apprunner start-deployment \
+            --service-arn "$APP_RUNNER_SERVICE_ARN" \
+            --region "$AWS_REGION"
+
+      - name: Wait for service to stabilize
+        run: |
+          echo "Deployment started. Polling service status…"
+          for i in $(seq 1 30); do
+            STATUS=$(aws apprunner describe-service \
+              --service-arn "$APP_RUNNER_SERVICE_ARN" \
+              --region "$AWS_REGION" \
+              --query 'Service.Status' --output text)
+            echo "Status: $STATUS"
+            [ "$STATUS" = "RUNNING" ] && exit 0
+            sleep 20
+          done
+          echo "Service did not reach RUNNING in time" && exit 1

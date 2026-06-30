@@ -3,9 +3,8 @@ title: AM RAG Document QA
 emoji: 📄
 colorFrom: blue
 colorTo: purple
-sdk: streamlit
-sdk_version: 1.35.0
-app_file: app.py
+sdk: docker
+app_port: 8501
 pinned: false
 ---
 
